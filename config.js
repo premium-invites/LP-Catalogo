@@ -1,45 +1,88 @@
 /**
- * CONVITE PREMIUM — CONFIGURAÇÕES
- * Adicione quantos temas e exemplos quiser. Não é necessário editar o HTML.
- *
- * IMPORTANTE: substitua os links e as imagens apenas por arquivos reais.
+ * CONVITE PREMIUM — CONFIGURAÇÃO DO FUNIL
+ * Os sete temas abaixo são exemplos demonstrativos para testar o baralho.
+ * Cada tema possui MP4/WebM: a carta da frente reproduz seu vídeo em loop.
+ * Os seis vídeos além de Azul & Dourado são movimentos suaves criados a partir das capas estáticas.
+ * Substitua as imagens e vídeos demonstrativos pelos materiais finais antes de divulgar.
  */
 window.SITE_CONFIG = {
-  // Confirme se o número de WhatsApp abaixo continua correto. Use DDI + DDD + número.
-  whatsapp: '5588994897535',
-
+  whatsapp: '5588994897535', // Confirme o número antes da publicação (DDI + DDD + número).
   video: {
-    // Coloque o vídeo real em assets/vsl-15anos.mp4 e defina o caminho abaixo.
-    // O site tenta iniciar com áudio. Se o navegador bloquear, aparece o botão
-    // para o visitante tocar no vídeo e iniciar com áudio ligado.
-    src: '',
-    poster: 'assets/capa-15anos.webp',
-    liberarAposSegundos: 1
+    src: 'assets/video/vsl-preview.mp4',
+    webm: 'assets/video/vsl-preview.webm',
+    poster: 'assets/video/vsl-preview-poster.webp',
+    revealAfterSeconds: 3
   },
-
-  // Um tema real foi encontrado no material enviado. Novos temas entram aqui.
   temas: [
     {
       id: 'azul-dourado',
       nome: 'Azul & Dourado',
-      descricao: 'Encantado · Azul-marinho · Dourado',
-      imagem: 'assets/capa-15anos.webp',
-      // Personalize estas cores para cada novo tema. Use fundos escuros para
-      // garantir a leitura do texto branco e detalhes claros no destaque.
-      cores: { principal: '#0b2048', secundaria: '#182f61', destaque: '#e6c384' }
-    }
-  ],
-
-  // Exemplos de convites finalizados na seção de cartas sobrepostas.
-  // Podem ser diferentes dos temas oferecidos no catálogo.
-  // O efeito de deslizar funciona automaticamente quando houver 2 ou mais exemplos.
-  exemplos: [
+      descricao: 'Azul-marinho · Dourado · Clássico',
+      imagem: 'assets/temas/azul-dourado.webp',
+      videoMp4: 'assets/temas/azul-dourado.mp4',
+      videoWebm: 'assets/temas/azul-dourado.webm',
+      textura: 'stars',
+      cores: { principal: '#07132c', secundaria: '#19345c', destaque: '#e1b869' }
+    },
     {
-      id: 'nycolle',
-      nome: '15 anos · Nycolle',
-      legenda: 'Azul & Dourado',
-      imagem: 'assets/capa-15anos.webp',
-      url: 'https://convitepremium.github.io/convites-premium-Nycolle/?v'
+      id: 'rosas-vermelhas',
+      nome: 'Rosas Vermelhas',
+      descricao: 'Romântico · Vermelho · Rosas',
+      imagem: 'assets/temas/rosas-vermelhas.webp',
+      videoMp4: 'assets/temas/rosas-vermelhas.mp4',
+      videoWebm: 'assets/temas/rosas-vermelhas.webm',
+      textura: 'roses',
+      cores: { principal: '#30081a', secundaria: '#751834', destaque: '#f5bebe' }
+    },
+    {
+      id: 'jardim-encantado',
+      nome: 'Jardim Encantado',
+      descricao: 'Mágico · Verde · Dourado',
+      imagem: 'assets/temas/jardim-encantado.webp',
+      videoMp4: 'assets/temas/jardim-encantado.mp4',
+      videoWebm: 'assets/temas/jardim-encantado.webm',
+      textura: 'garden',
+      cores: { principal: '#0a241f', secundaria: '#1c5745', destaque: '#dcc27a' }
+    },
+    {
+      id: 'borboletas-lilas',
+      nome: 'Borboletas Lilás',
+      descricao: 'Delicado · Lilás · Lavanda',
+      imagem: 'assets/temas/borboletas-lilas.webp',
+      videoMp4: 'assets/temas/borboletas-lilas.mp4',
+      videoWebm: 'assets/temas/borboletas-lilas.webm',
+      textura: 'butterflies',
+      cores: { principal: '#221641', secundaria: '#63448f', destaque: '#dec2f5' }
+    },
+    {
+      id: 'noite-de-gala',
+      nome: 'Noite de Gala',
+      descricao: 'Preto · Prata · Sofisticado',
+      imagem: 'assets/temas/noite-de-gala.webp',
+      videoMp4: 'assets/temas/noite-de-gala.mp4',
+      videoWebm: 'assets/temas/noite-de-gala.webm',
+      textura: 'artdeco',
+      cores: { principal: '#0c0e17', secundaria: '#313644', destaque: '#d7dce6' }
+    },
+    {
+      id: 'perolas-champagne',
+      nome: 'Pérolas & Champagne',
+      descricao: 'Champagne · Pérolas · Elegante',
+      imagem: 'assets/temas/perolas-champagne.webp',
+      videoMp4: 'assets/temas/perolas-champagne.mp4',
+      videoWebm: 'assets/temas/perolas-champagne.webm',
+      textura: 'pearls',
+      cores: { principal: '#3e2e23', secundaria: '#906f4d', destaque: '#f8e1b8' }
+    },
+    {
+      id: 'ceu-estrelado',
+      nome: 'Céu Estrelado',
+      descricao: 'Azul profundo · Prata · Lua',
+      imagem: 'assets/temas/ceu-estrelado.webp',
+      videoMp4: 'assets/temas/ceu-estrelado.mp4',
+      videoWebm: 'assets/temas/ceu-estrelado.webm',
+      textura: 'moon',
+      cores: { principal: '#0f1237', secundaria: '#33366f', destaque: '#c7d3f8' }
     }
   ]
 };

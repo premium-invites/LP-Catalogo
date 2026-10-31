@@ -1,436 +1,418 @@
 (() => {
   'use strict';
-
   const config = window.SITE_CONFIG || {};
-  const temas = Array.isArray(config.temas) ? config.temas : [];
-  const exemplos = Array.isArray(config.exemplos) ? config.exemplos : [];
+  const themes = Array.isArray(config.temas) ? config.temas : [];
   const page = document.body.dataset.page;
-  const KEY_INTRO = 'convite-premium-vsl-ok';
-  const KEY_TEMA = 'convite-premium-tema-selecionado';
-  const one = (selector) => document.querySelector(selector);
-
-  // O controle de etapas é feito no navegador, sem servidor ou armazenamento de dados pessoais.
-  // Não é uma barreira de segurança: evita apenas pular etapas pela navegação comum.
+  const KEY_THEME = 'convite-premium-tema-selecionado';
+  const one = (selector, root = document) => root.querySelector(selector);
+  const all = (selector, root = document) => [...root.querySelectorAll(selector)];
   const flow = {
     read(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
-    write(key, value) { try { sessionStorage.setItem(key, value); } catch { /* Navegação básica sem sessão. */ } }
+    write(key, value) { try { sessionStorage.setItem(key, value); } catch { /* O parâmetro da URL identifica o tema. */ } }
   };
 
-  document.querySelectorAll('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
+  all('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
+  initReveals();
+  if (page === 'home') {
+    initVSL();
+    initThemeDeck();
+    initScrollFade();
+    initAnchorScroll();
+  } else if (page === 'quiz') initQuiz();
 
-  if (page !== 'intro' && flow.read(KEY_INTRO) !== '1') {
-    window.location.replace('index.html');
-    return;
-  }
-
-  if (page === 'intro') initIntro();
-  if (page === 'catalogo') { initCatalog(); initReveals(); }
-  if (page === 'quiz') { initQuiz(); initReveals(); }
-
-  function initIntro() {
+  function initVSL() {
     const video = one('#introVideo');
-    const fallback = one('#videoFallback');
-    const tapToPlay = one('#vslTapToPlay');
-    const status = one('#vslStatus');
-    const retryButton = one('#retryVideo');
-    const continueButton = one('#continueButton');
     const soundButton = one('#soundButton');
-    const playButton = one('#playButton');
-    const progress = one('#videoProgress');
-    const controlLabel = one('#videoControlLabel');
-    const data = config.video || {};
-    const src = typeof data.src === 'string' ? data.src.trim() : '';
-    const unlockSeconds = Math.max(1, Number(data.liberarAposSegundos) || 1);
-    const introStart = performance.now();
-    let unlocked = false;
-    let fallbackMode = false;
-    let waitingToReveal = false;
-    let loadTimer = null;
+    const soundText = one('#soundButtonText');
+    const playOverlay = one('#vslPlayOverlay');
+    const headline = one('.vsl-headline');
+    const subheadline = one('.vsl-summary');
+    const cta = one('#continueButton');
+    const revealAt = Math.max(1, Number(config.video?.revealAfterSeconds) || 3);
+    const sourceMp4 = one('source[type="video/mp4"]', video);
+    const sourceWebm = one('source[type="video/webm"]', video);
+    if (sourceMp4 && config.video?.src) sourceMp4.src = config.video.src;
+    if (sourceWebm && config.video?.webm) sourceWebm.src = config.video.webm;
+    if (config.video?.poster) video.poster = config.video.poster;
+    video.load();
+    let copyStarted = false;
 
-    // Título → subtítulo → CTA. O botão somente pode aparecer após
-    // o tempo real de reprodução (1s) E depois da entrada dos textos.
-    function unlock() {
-      if (unlocked || waitingToReveal) return;
-      waitingToReveal = true;
-      const waitForCopy = Math.max(0, 1550 - (performance.now() - introStart));
-      window.setTimeout(() => {
-        unlocked = true;
-        status.hidden = true;
-        continueButton.hidden = false;
-      }, waitForCopy);
+    function updateSoundControl() {
+      soundButton.setAttribute('aria-pressed', String(!video.muted));
+      soundButton.setAttribute('aria-label', video.muted ? 'Ativar som do vídeo' : 'Silenciar vídeo');
+      soundText.textContent = video.muted ? 'Ativar som' : 'Som ativado';
+      soundButton.classList.toggle('is-on', !video.muted);
     }
-    retryButton.addEventListener('click', () => window.location.reload());
-    continueButton.addEventListener('click', (event) => {
-      if (!unlocked) { event.preventDefault(); return; }
-      flow.write(KEY_INTRO, '1');
+    function revealCopy() {
+      if (copyStarted) return;
+      copyStarted = true;
+      headline.classList.add('is-visible');
+      window.setTimeout(() => subheadline.classList.add('is-visible'), 1050);
+      window.setTimeout(() => cta.classList.add('is-visible'), 2150);
+    }
+    function startPlaybackFromGesture() {
+      video.muted = true;
+      const result = video.play();
+      if (result && typeof result.then === 'function') result.then(() => { playOverlay.hidden = true; }).catch(() => { playOverlay.hidden = false; });
+      updateSoundControl();
+    }
+
+    video.muted = true;
+    video.playsInline = true;
+    video.loop = true;
+    video.autoplay = true;
+    video.addEventListener('timeupdate', () => {
+      if (!copyStarted && !video.seeking && video.currentTime >= revealAt) revealCopy();
     });
-
-    function showFallback(message) {
-      if (fallbackMode) return;
-      fallbackMode = true;
-      clearTimeout(loadTimer);
-      tapToPlay.hidden = true;
-      video.pause();
-      video.hidden = true;
-      fallback.hidden = false;
-      playButton.hidden = true;
-      soundButton.hidden = true;
-      status.hidden = false;
-      status.textContent = message;
-      controlLabel.textContent = src ? 'VÍDEO INDISPONÍVEL' : 'PRÉVIA ESTÁTICA · VÍDEO PENDENTE';
-      if (!src) {
-        // Apenas a prévia de teste SEM vídeo permite seguir após 1s.
-        window.setTimeout(unlock, unlockSeconds * 1000);
-      } else {
-        // Com vídeo configurado, uma falha NÃO pode pular a etapa obrigatória.
-        status.textContent = message + '. Recarregue para tentar novamente.';
-        retryButton.hidden = false;
-      }
-    }
-
-    if (!src) {
-      showFallback('Vídeo não adicionado · acesso para teste');
-      return;
-    }
-
-    video.poster = typeof data.poster === 'string' && data.poster.trim()
-      ? data.poster : 'assets/capa-15anos.webp';
-    video.src = src;
-    video.muted = false;
-    video.volume = 1;
-    video.hidden = false;
-    fallback.hidden = true;
-    soundButton.hidden = false;
-    playButton.hidden = false;
-    status.textContent = 'Assista ao primeiro segundo para liberar os temas';
-    controlLabel.textContent = '15 ANOS · CONVITE PREMIUM';
-
-    function refreshControls() {
-      playButton.textContent = video.paused ? 'Reproduzir' : 'Pausar';
-      playButton.setAttribute('aria-label', video.paused ? 'Reproduzir vídeo' : 'Pausar vídeo');
-      soundButton.textContent = video.muted ? 'Ativar som' : 'Silenciar';
-      soundButton.setAttribute('aria-label', video.muted ? 'Ativar som' : 'Silenciar vídeo');
-    }
-    function updateProgress() {
-      if (Number.isFinite(video.duration) && video.duration > 0) {
-        progress.style.width = Math.min(100, video.currentTime / video.duration * 100) + '%';
-      }
-      if (!video.seeking && video.currentTime >= unlockSeconds) unlock();
-    }
-
-    function beginWithSound() {
-      video.muted = false;
-      refreshControls();
-      // Chamado diretamente pelo toque; browsers bloqueiam autoplay
-      // com áudio sem gesto humano. Nenhuma promessa de autoplay garantido.
-      const playing = video.play();
-      if (playing && typeof playing.then === 'function') {
-        playing.then(() => { tapToPlay.hidden = true; status.hidden = true; })
-          .catch(() => {
-            tapToPlay.hidden = false;
-            status.hidden = false;
-            status.textContent = 'Toque para iniciar a apresentação';
-          });
-      }
-    }
-
-    tapToPlay.addEventListener('click', beginWithSound);
-    playButton.addEventListener('click', () => {
-      if (video.paused || video.ended) {
-        if (video.ended) video.currentTime = 0;
-        beginWithSound();
-      } else video.pause();
-      refreshControls();
+    video.addEventListener('playing', () => { playOverlay.hidden = true; });
+    video.addEventListener('error', () => {
+      playOverlay.hidden = false;
+      const label = one('span:last-child', playOverlay);
+      if (label) label.textContent = 'Vídeo indisponível · toque para tentar novamente';
     });
+    playOverlay.addEventListener('click', startPlaybackFromGesture);
     soundButton.addEventListener('click', () => {
-      video.muted = !video.muted;
-      refreshControls();
+      if (video.muted) {
+        video.muted = false;
+        const result = video.play();
+        if (result && typeof result.catch === 'function') result.catch(() => { video.muted = true; updateSoundControl(); });
+      } else video.muted = true;
+      updateSoundControl();
     });
-    video.addEventListener('timeupdate', updateProgress);
-    video.addEventListener('playing', () => {
-      clearTimeout(loadTimer);
-      tapToPlay.hidden = true;
-      if (!unlocked && !waitingToReveal) {
-        status.hidden = false;
-        status.textContent = 'Assista ao primeiro segundo para liberar os temas';
-      }
-      refreshControls();
+    cta.addEventListener('click', event => {
+      event.preventDefault();
+      cta.classList.remove('ripple-active');
+      void cta.offsetWidth;
+      cta.classList.add('ripple-active');
+      const target = one('#catalogo');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      window.setTimeout(() => {
+        target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+        cta.classList.remove('ripple-active');
+      }, 360);
     });
-    video.addEventListener('pause', refreshControls);
-    video.addEventListener('ended', () => { refreshControls(); updateProgress(); });
-    video.addEventListener('error', () => showFallback('Não foi possível carregar o vídeo'));
-    video.addEventListener('stalled', () => {
-      if (!unlocked) status.textContent = 'Carregando apresentação…';
-    });
-    loadTimer = window.setTimeout(() => {
-      if (video.readyState < 2 && !unlocked && !video.currentTime) {
-        showFallback('Vídeo indisponível');
-      }
-    }, 10000);
-
-    refreshControls();
-    // Tenta autoplay com áudio. Se bloqueado, um toque sobre o próprio
-    // vídeo o reproduz imediatamente com áudio, sem autoplay mudo.
-    video.play().then(() => {
-      tapToPlay.hidden = true;
-    }).catch(() => {
-      if (!fallbackMode) {
-        tapToPlay.hidden = false;
-        status.hidden = true;
-      }
-    });
+    updateSoundControl();
+    // Autoplay silencioso: o áudio só é ativado após ação explícita do visitante.
+    const result = video.play();
+    if (result && typeof result.then === 'function') result.then(() => { playOverlay.hidden = true; }).catch(() => { playOverlay.hidden = false; });
   }
 
   function initReveals() {
-    const nodes = [...document.querySelectorAll('.reveal')];
-    if (!nodes.length || !('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    document.body.classList.add('has-motion');
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
+    const nodes = all('.reveal');
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!nodes.length || !('IntersectionObserver' in window) || reduced) {
+      nodes.forEach(node => node.classList.add('is-visible'));
+      return;
+    }
+    const observer = new IntersectionObserver((entries, currentObserver) => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
+          currentObserver.unobserve(entry.target);
         }
-      }
-    }, { threshold: 0.08, rootMargin: '0px 0px 32px 0px' });
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px 42px 0px' });
     nodes.forEach((node, index) => {
-      if (node.closest('.theme-grid') || node.closest('.benefits-grid') || node.closest('.features-grid')) {
-        node.style.transitionDelay = (index % 3) * 75 + 'ms';
-      }
+      if (node.closest('.benefits-grid') || node.closest('.features-grid') || node.closest('.process-list')) node.style.transitionDelay = `${(index % 3) * 85}ms`;
       observer.observe(node);
     });
   }
 
-  function el(tag, className, text) {
-    const item = document.createElement(tag);
-    if (className) item.className = className;
-    if (text !== undefined) item.textContent = text;
-    return item;
-  }
-  function validHttps(value) {
-    if (!value || typeof value !== 'string') return null;
-    try { const url = new URL(value); return url.protocol === 'https:' ? url.href : null; }
-    catch { return null; }
+  function safeHex(value, fallback) {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
   }
   function chooseTheme(id) {
-    if (!id || (id !== 'outro' && !temas.some(t => t && t.id === id))) return;
-    flow.write(KEY_TEMA, id);
-    window.location.assign('quiz.html?tema=' + encodeURIComponent(id));
-  }
-  function initCatalog() {
-    const grid = one('#themeGrid');
-    const available = temas.filter(t => t && typeof t.id === 'string' && typeof t.nome === 'string' && t.id !== 'outro');
-    available.forEach((theme, index) => grid.append(buildThemeCard(theme, index)));
-    grid.append(buildOtherCard());
-    initDeck();
-    initScrollCue();
-    initThemeJump();
-  }
-  function initThemeJump() {
-    const target = one('#temas');
-    if (!target) return;
-    const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    document.querySelectorAll('a[href="#temas"]').forEach((link) => {
-      link.addEventListener('click', (event) => {
-        event.preventDefault();
-        target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
-      });
-    });
-  }
-  function buildThemeCard(theme, index) {
-    const article = el('article', 'theme-card reveal');
-    const art = el('div', 'theme-art');
-    const image = el('img');
-    image.src = theme.imagem || 'assets/capa-15anos.webp';
-    image.alt = 'Capa do convite de 15 anos no estilo ' + theme.nome;
-    image.loading = index < 2 ? 'eager' : 'lazy';
-    image.decoding = 'async';
-    image.addEventListener('error', () => {
-      image.remove();
-      art.classList.add('theme-art-missing');
-      art.append(el('span', 'theme-image-fallback', 'Imagem em preparação'));
-    });
-    art.append(image, el('span', 'theme-number', String(index + 1).padStart(2, '0') + ' · TEMA'));
-    const details = el('div', 'theme-details');
-    details.append(el('h3', '', theme.nome), el('p', '', theme.descricao || 'Convite digital de 15 anos'));
-    // A escolha é a única ação do card; exemplos interativos ficam no baralho.
-    const actions = el('div', 'theme-actions');
-    const choose = el('button', 'theme-choose', 'Escolher tema →');
-    choose.type = 'button';
-    choose.addEventListener('click', () => chooseTheme(theme.id));
-    actions.append(choose);
-    details.append(actions);
-    article.append(art, details);
-    return article;
-  }
-  function buildOtherCard() {
-    const card = el('article', 'theme-card theme-card-other reveal');
-    const art = el('div', 'theme-art other-art');
-    art.append(el('span', '', '✧'), el('strong', '', 'O seu estilo, do seu jeito.'));
-    const details = el('div', 'theme-details');
-    details.append(el('h3', '', 'Sua ideia'), el('p', '', 'Tem uma inspiração única? Conte para nós.'));
-    const actions = el('div', 'theme-actions');
-    const choose = el('button', 'theme-choose', 'Descrever minha ideia →');
-    choose.type = 'button';
-    choose.addEventListener('click', () => chooseTheme('outro'));
-    actions.append(choose);
-    details.append(actions);
-    card.append(art, details);
-    return card;
+    if (!id || (id !== 'outro' && !themes.some(theme => theme && theme.id === id))) return;
+    flow.write(KEY_THEME, id);
+    window.location.assign(`quiz.html?tema=${encodeURIComponent(id)}`);
   }
 
-  function initScrollCue() {
+  function initThemeDeck() {
+    const stage = one('#deckStage');
+    const currentLabel = one('#deckCurrent');
+    const totalLabel = one('#deckTotal');
+    const previousButton = one('#deckPrev');
+    const nextButton = one('#deckNext');
+    const hint = one('#deckHint');
+    if (!stage) return;
+
+    const entries = [
+      ...themes.filter(theme => theme && typeof theme.id === 'string' && theme.id !== 'outro'),
+      { id: 'outro', nome: 'Sua ideia', descricao: 'O seu estilo, do seu jeito.', textura: 'idea', cores: { principal: '#14213c', secundaria: '#273b62', destaque: '#e5c58c' } }
+    ];
+    let active = 0;
+    let drag = null;
+    let suppressClick = false;
+    let wheelAt = 0;
+    let deckVisible = !('IntersectionObserver' in window);
+
+    const cards = entries.map((theme, index) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = `deck-card${theme.id === 'outro' ? ' deck-card-idea' : ''}`;
+      card.dataset.themeId = theme.id;
+      card.setAttribute('aria-label', theme.id === 'outro' ? 'Escolher Sua ideia e descrever um tema personalizado' : `Escolher o tema ${theme.nome}`);
+      card.style.setProperty('--card-main', safeHex(theme.cores?.principal, '#10213e'));
+      card.style.setProperty('--card-secondary', safeHex(theme.cores?.secundaria, '#1c3869'));
+      card.style.setProperty('--card-accent', safeHex(theme.cores?.destaque, '#e0c38b'));
+      card.dataset.texture = theme.textura || 'stars';
+
+      const media = document.createElement('span');
+      media.className = 'deck-card-media';
+      if (theme.id === 'outro') {
+        const ideaArt = document.createElement('span');
+        ideaArt.className = 'deck-idea-art';
+        ideaArt.innerHTML = '<span class="idea-star" aria-hidden="true">✧</span><strong>O seu estilo,<br>do seu jeito.</strong><small>CRIE UMA IDEIA ÚNICA</small>';
+        media.append(ideaArt);
+      } else if (theme.videoMp4 || theme.videoWebm || theme.video) {
+        const video = document.createElement('video');
+        video.className = 'deck-card-video';
+        video.muted = true;
+        video.setAttribute('muted', '');
+        video.loop = true;
+        video.autoplay = false;
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.preload = 'none';
+        video.poster = theme.imagem;
+        video.setAttribute('aria-hidden', 'true');
+        if (theme.videoMp4) {
+          const mp4 = document.createElement('source');
+          mp4.src = theme.videoMp4;
+          mp4.type = 'video/mp4';
+          video.append(mp4);
+        }
+        const webmPath = theme.videoWebm || (!theme.videoMp4 ? theme.video : '');
+        if (webmPath) {
+          const webm = document.createElement('source');
+          webm.src = webmPath;
+          webm.type = 'video/webm';
+          video.append(webm);
+        }
+        media.append(video);
+      } else {
+        const image = document.createElement('img');
+        image.className = 'deck-card-image';
+        image.src = theme.imagem || 'assets/video/vsl-preview-poster.webp';
+        image.alt = '';
+        image.loading = index < 2 ? 'eager' : 'lazy';
+        image.decoding = 'async';
+        media.append(image);
+      }
+
+      const number = document.createElement('span');
+      number.className = 'deck-card-number';
+      number.textContent = theme.id === 'outro' ? 'ÚLTIMA CARTA' : `${String(index + 1).padStart(2, '0')} · TEMA`;
+      const overlay = document.createElement('span');
+      overlay.className = 'deck-card-overlay';
+      const title = document.createElement('strong');
+      title.textContent = theme.nome;
+      const subtitle = document.createElement('small');
+      subtitle.textContent = theme.id === 'outro' ? 'Não encontrou seu tema? Conte sua ideia.' : (theme.descricao || 'Convite digital de 15 anos');
+      overlay.append(title, subtitle);
+      card.append(media, number, overlay);
+      card.addEventListener('click', () => {
+        if (suppressClick) { suppressClick = false; return; }
+        chooseTheme(theme.id);
+      });
+      stage.append(card);
+      return card;
+    });
+
+    totalLabel.textContent = String(entries.length).padStart(2, '0');
+
+    function updateActiveVideo() {
+      cards.forEach((card, index) => {
+        const video = one('video', card);
+        if (!video) return;
+        if (index === active && deckVisible) {
+          video.preload = 'auto';
+          if (video.readyState === 0 && !video.dataset.loadRequested) {
+            video.dataset.loadRequested = 'true';
+            video.load();
+          }
+          const playResult = video.play();
+          if (playResult && typeof playResult.catch === 'function') {
+            playResult.catch(() => {
+              // O poster permanece visível se o navegador bloquear a reprodução.
+            });
+          }
+        } else {
+          video.pause();
+          try {
+            if (video.readyState > 0) video.currentTime = 0;
+          } catch { /* Metadados ainda não carregados. */ }
+        }
+      });
+    }
+
+    function paint() {
+      currentLabel.textContent = String(active + 1).padStart(2, '0');
+      previousButton.disabled = active === 0;
+      nextButton.disabled = active === cards.length - 1;
+      hint.textContent = active === cards.length - 1 ? 'SUA IDEIA · ÚLTIMA OPÇÃO' : 'DESLIZE PARA VER OS TEMAS';
+      cards.forEach((card, index) => {
+        const depth = index - active;
+        let x = 0, y = 0, rotate = 0, scale = 1, opacity = 1, z = 20, pointer = 'auto';
+        if (depth === 1) { x = 22; y = -8; rotate = 7; scale = .955; z = 19; pointer = 'none'; }
+        else if (depth === 2) { x = -20; y = -15; rotate = -7; scale = .91; z = 18; pointer = 'none'; }
+        else if (depth === 3) { x = 29; y = -21; rotate = 10; scale = .87; z = 17; pointer = 'none'; }
+        else if (depth > 3) { x = 38; y = -26; rotate = 12; scale = .83; opacity = 0; z = 1; pointer = 'none'; }
+        else if (depth === -1) { x = -34; y = -13; rotate = -12; scale = .86; opacity = .72; z = 5; pointer = 'none'; }
+        else if (depth < -1) { x = -42; y = -18; rotate = -14; scale = .82; opacity = 0; z = 1; pointer = 'none'; }
+        card.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rotate}deg) scale(${scale})`;
+        card.style.opacity = String(opacity);
+        card.style.zIndex = String(z);
+        card.style.pointerEvents = pointer;
+        card.tabIndex = depth === 0 ? 0 : -1;
+        card.setAttribute('aria-hidden', depth === 0 ? 'false' : 'true');
+      });
+      updateActiveVideo();
+    }
+
+    function move(delta) {
+      const next = Math.max(0, Math.min(cards.length - 1, active + delta));
+      if (next === active) return;
+      active = next;
+      paint();
+    }
+
+    previousButton.addEventListener('click', () => move(-1));
+    nextButton.addEventListener('click', () => move(1));
+    stage.addEventListener('keydown', event => {
+      if (event.key === 'ArrowRight') { event.preventDefault(); move(1); }
+      if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1); }
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); chooseTheme(entries[active].id); }
+    });
+
+    stage.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      const clickedCard = event.target.closest('.deck-card');
+      if (clickedCard && clickedCard !== cards[active]) return;
+      drag = { x: event.clientX, y: event.clientY, dx: 0, dy: 0, moved: false, card: cards[active] };
+      stage.classList.add('is-dragging');
+      try { stage.setPointerCapture(event.pointerId); } catch { /* Alguns navegadores não suportam captura neste alvo. */ }
+    });
+    stage.addEventListener('pointermove', event => {
+      if (!drag) return;
+      drag.dx = event.clientX - drag.x;
+      drag.dy = event.clientY - drag.y;
+      if (Math.abs(drag.dx) > 7 && Math.abs(drag.dx) > Math.abs(drag.dy) * 1.15) {
+        drag.moved = true;
+        const tilt = Math.max(-12, Math.min(12, drag.dx * .055));
+        drag.card.style.transform = `translate3d(${drag.dx * .72}px, ${drag.dy * .12}px, 0) rotate(${tilt}deg) scale(1.015)`;
+      }
+    });
+    function finishDrag() {
+      if (!drag) return;
+      const { dx, dy, moved } = drag;
+      drag = null;
+      stage.classList.remove('is-dragging');
+      if (moved && Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        suppressClick = true;
+        move(dx < 0 ? 1 : -1);
+        window.setTimeout(() => { suppressClick = false; }, 450);
+      } else paint();
+    }
+    stage.addEventListener('pointerup', finishDrag);
+    stage.addEventListener('pointercancel', finishDrag);
+    stage.addEventListener('wheel', event => {
+      if (Math.abs(event.deltaX) < 15 || Math.abs(event.deltaX) < Math.abs(event.deltaY) * 1.2) return;
+      event.preventDefault();
+      if (performance.now() - wheelAt > 380) { move(event.deltaX > 0 ? 1 : -1); wheelAt = performance.now(); }
+    }, { passive: false });
+    paint();
+    if ('IntersectionObserver' in window) {
+      const deckObserver = new IntersectionObserver(entries => {
+        deckVisible = Boolean(entries[0] && entries[0].isIntersecting);
+        updateActiveVideo();
+      }, { threshold: 0.3, rootMargin: '80px 0px' });
+      deckObserver.observe(stage);
+    }
+  }
+
+  function initScrollFade() {
     const edge = one('#scrollEdge');
     if (!edge) return;
     let scheduled = false;
-    // Sinal visual somente no início da página: depois que a pessoa começa
-    // a rolar, o degradê deixa de cobrir os convites e os botões.
     const update = () => {
-      const bottom = document.documentElement.scrollHeight - innerHeight - 120;
-      edge.classList.toggle('is-hidden', scrollY > 180 || scrollY >= bottom);
+      const atBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 24;
+      const hasStartedScrolling = window.scrollY > 90;
+      edge.classList.toggle('is-visible', hasStartedScrolling && !atBottom);
+      edge.classList.toggle('is-hidden', atBottom);
       scheduled = false;
     };
     const queue = () => {
       if (!scheduled) { scheduled = true; requestAnimationFrame(update); }
     };
-    addEventListener('scroll', queue, { passive: true });
-    addEventListener('resize', queue, { passive: true });
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue, { passive: true });
+    if ('ResizeObserver' in window) new ResizeObserver(queue).observe(document.body);
     queue();
   }
 
-  function initDeck() {
-    const stage = one('#deckStage');
-    const current = one('#deckCurrent');
-    const total = one('#deckTotal');
-    const controls = one('#deckControls');
-    const hint = one('#deckHint');
-    if (!stage) return;
-    const entries = exemplos.filter(e => e && e.nome && validHttps(e.url));
-    let active = 0;
-    let suppressedClick = false;
-    let wheelAt = 0;
-    let dragStart = null;
-    const cards = entries.map((entry, index) => {
-      const article = el('article', 'deck-card');
-      const link = el('a', '', undefined);
-      link.href = validHttps(entry.url);
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.setAttribute('aria-label', 'Abrir o convite completo ' + entry.nome + ' em uma nova aba');
-      const img = el('img');
-      img.src = entry.imagem || 'assets/capa-15anos.webp';
-      img.alt = 'Convite interativo de ' + entry.nome;
-      img.draggable = false;
-      img.loading = index === 0 ? 'eager' : 'lazy';
-      const overlay = el('div', 'deck-card-overlay');
-      overlay.append(el('strong', '', entry.nome), el('small', '', (entry.legenda ? entry.legenda + ' · ' : '') + 'Abrir convite completo ↗'));
-      link.append(img, overlay);
-      article.append(link);
-      stage.append(article);
-      return article;
-    });
-    const n = cards.length;
-    total.textContent = String(n).padStart(2, '0');
-    if (n <= 1) {
-      controls.classList.add('is-single');
-      hint.textContent = n === 1 ? 'TOQUE PARA ABRIR O CONVITE' : 'EXEMPLOS EM PREPARAÇÃO';
-    } else stage.classList.add('has-multiple');
-    if (!n) {
-      const empty = el('div', 'deck-empty', 'Os exemplos interativos serão adicionados aqui.');
-      stage.append(empty);
-    }
-
-    function paint() {
-      current.textContent = String(n ? active + 1 : 0).padStart(2, '0');
-      cards.forEach((card, index) => {
-        const depth = (index - active + n) % n;
-        const positions = [
-          { x: 0, y: 0, rotate: 0, scale: 1 },
-          { x: 23, y: -7, rotate: 8, scale: .945 },
-          { x: -20, y: -8, rotate: -9, scale: .89 },
-          { x: 30, y: 0, rotate: 12, scale: .85 }
-        ];
-        const pos = positions[Math.min(depth, 3)];
-        card.style.transform = `translate3d(${pos.x}px,${pos.y}px,0) rotate(${pos.rotate}deg) scale(${pos.scale})`;
-        card.style.opacity = depth > 3 ? '0' : '1';
-        card.style.zIndex = String(n - depth + 1);
-        card.style.pointerEvents = depth === 0 ? 'auto' : 'none';
-        card.setAttribute('aria-hidden', depth === 0 ? 'false' : 'true');
-        const link = card.querySelector('a');
-        if (link) link.tabIndex = depth === 0 ? 0 : -1;
+  function initAnchorScroll() {
+    all('a[href^="#"]').forEach(link => {
+      link.addEventListener('click', event => {
+        const target = one(link.getAttribute('href'));
+        if (!target) return;
+        event.preventDefault();
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
       });
-    }
-    function move(delta) {
-      if (n <= 1) return;
-      active = (active + delta + n) % n;
-      paint();
-    }
-    one('#deckPrev').addEventListener('click', () => move(-1));
-    one('#deckNext').addEventListener('click', () => move(1));
-    stage.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowRight') { event.preventDefault(); move(1); }
-      if (event.key === 'ArrowLeft') { event.preventDefault(); move(-1); }
     });
-    stage.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 || n <= 1) return;
-      dragStart = { x: event.clientX, y: event.clientY };
-    });
-    stage.addEventListener('pointerup', (event) => {
-      if (!dragStart) return;
-      const dx = event.clientX - dragStart.x;
-      const dy = event.clientY - dragStart.y;
-      dragStart = null;
-      if (Math.abs(dx) > 32 && Math.abs(dx) > Math.abs(dy) * 1.25) {
-        move(dx < 0 ? 1 : -1);
-        suppressedClick = true;
-      }
-    });
-    stage.addEventListener('pointercancel', () => { dragStart = null; });
-    stage.addEventListener('click', (event) => {
-      if (!suppressedClick) return;
-      event.preventDefault();
-      event.stopPropagation();
-      suppressedClick = false;
-    }, true);
-    stage.addEventListener('wheel', (event) => {
-      if (n <= 1 || Math.abs(event.deltaX) < 15 || Math.abs(event.deltaX) <= Math.abs(event.deltaY) * 1.25) return;
-      event.preventDefault();
-      if (performance.now() - wheelAt > 410) { move(event.deltaX > 0 ? 1 : -1); wheelAt = performance.now(); }
-    }, { passive: false });
-    paint();
   }
 
   function initQuiz() {
     const params = new URLSearchParams(location.search);
-    const id = params.get('tema');
-    const theme = id === 'outro' ? { id: 'outro', nome: 'Sua ideia' } : temas.find(t => t && t.id === id);
-    // Uma seleção válida na etapa anterior é necessária para montar o briefing.
-    if (!theme || !id || flow.read(KEY_TEMA) !== id) {
-      window.location.replace('catalogo.html#temas');
+    const id = params.get('tema') || flow.read(KEY_THEME);
+    const theme = id === 'outro'
+      ? { id: 'outro', nome: 'Sua ideia', descricao: 'O seu estilo, do seu jeito.', textura: 'idea', cores: { principal: '#14213c', secundaria: '#273b62', destaque: '#e5c58c' } }
+      : themes.find(item => item && item.id === id);
+
+    if (!theme || !id || flow.read(KEY_THEME) !== id) {
+      window.location.replace('index.html#catalogo');
       return;
     }
-    one('#chosenTheme').textContent = theme.nome;
-    const other = id === 'outro';
+
     const chosen = one('#chosenThemeCard');
     const image = one('#chosenThemeImage');
     const icon = one('#chosenThemeIcon');
-    const colors = theme.cores || {};
-    const hex = (value, fallback) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
-    chosen.style.setProperty('--selected-main', hex(colors.principal, '#10213e'));
-    chosen.style.setProperty('--selected-secondary', hex(colors.secundaria, '#1c3869'));
-    chosen.style.setProperty('--selected-accent', hex(colors.destaque, '#e0c38b'));
-    if (!other && typeof theme.imagem === 'string' && theme.imagem.trim()) {
+    one('#chosenTheme').textContent = theme.nome;
+    one('#chosenThemeDescription').textContent = theme.descricao || '';
+    chosen.dataset.texture = theme.textura || 'stars';
+    chosen.style.setProperty('--selected-main', safeHex(theme.cores?.principal, '#10213e'));
+    chosen.style.setProperty('--selected-secondary', safeHex(theme.cores?.secundaria, '#1c3869'));
+    chosen.style.setProperty('--selected-accent', safeHex(theme.cores?.destaque, '#e0c38b'));
+    if (theme.imagem) {
       image.src = theme.imagem;
       image.hidden = false;
       icon.hidden = true;
       image.addEventListener('error', () => { image.hidden = true; icon.hidden = false; }, { once: true });
     }
 
-    one('#otherDescriptionField').hidden = !other;
-    one('#outroTema').disabled = !other;
+    const other = id === 'outro';
+    const descriptionField = one('#otherDescriptionField');
+    const descriptionInput = one('#outroTema');
+    descriptionField.hidden = !other;
+    descriptionInput.disabled = !other;
+
+    const ageSelect = one('#idadeSelect');
+    const otherAgeField = one('#otherAgeField');
+    const otherAgeInput = one('#idadeOutra');
+    function syncAgeField() {
+      const isOther = ageSelect.value === 'outra';
+      otherAgeField.hidden = !isOther;
+      otherAgeInput.disabled = !isOther;
+      otherAgeInput.required = isOther;
+      if (!isOther) otherAgeInput.value = '';
+    }
+    ageSelect.addEventListener('change', syncAgeField);
+    syncAgeField();
+
     const form = one('#quizForm');
     const whatsapp = String(config.whatsapp || '').replace(/\D/g, '');
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', event => {
       event.preventDefault();
       if (!form.reportValidity()) return;
       if (!/^\d{10,15}$/.test(whatsapp)) {
@@ -442,24 +424,25 @@
         const parts = iso.split('-');
         return parts.length === 3 ? parts.reverse().join('/') : iso;
       };
+      const age = ageSelect.value === 'outra' ? clean(otherAgeInput.value) : '15';
       const contact = clean(one('#responsavel').value);
       const debutante = clean(one('#aniversariante').value);
       const eventDate = one('#dataEvento').value;
       const eventTime = one('#horaEvento').value;
-      const eventPlace = clean(one('#localEvento').value);
-      const description = other ? clean(one('#outroTema').value) : '';
+      const mapLink = clean(one('#localEvento').value);
+      const description = other ? clean(descriptionInput.value) : '';
       const lines = [
-        'Olá! Vim pelo catálogo da Convite Premium e gostaria de solicitar um convite de 15 anos. ✨',
+        'Olá! Vim pelo catálogo da Convite Premium e gostaria de solicitar um convite. ✨',
         '',
         '📋 *DADOS DO PEDIDO*',
         '• Responsável: ' + contact,
         '• Nome da debutante: ' + debutante,
-        '• Comemoração: 15 anos',
+        '• Comemoração: ' + age + ' anos',
         '• Tema escolhido: ' + theme.nome
       ];
       if (eventDate) lines.push('• Data da festa: ' + formatDate(eventDate));
       if (eventTime) lines.push('• Horário: ' + eventTime);
-      if (eventPlace) lines.push('• Local: ' + eventPlace);
+      if (mapLink) lines.push('• Link do local: ' + mapLink);
       if (other) lines.push('• Ideia de tema: ' + (description || 'Prefiro explicar pelo WhatsApp.'));
       lines.push('', 'Gostaria de confirmar os detalhes e conversar sobre a criação da prévia.');
       window.location.assign('https://wa.me/' + whatsapp + '?text=' + encodeURIComponent(lines.join('\n')));

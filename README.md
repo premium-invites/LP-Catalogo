@@ -1,77 +1,107 @@
-# Convite Premium — Funil de 15 anos (versão consolidada)
+# Convite Premium — Funil integrado V5
 
-Site estático em HTML, CSS e JavaScript, adaptado da landing page original **Convites Interativos**. O site é **mobile first** e não depende de WordPress, React, servidor, banco de dados ou bibliotecas JavaScript externas.
+Projeto estático **mobile-first** para GitHub Pages. A VSL e o catálogo ficam na mesma página; o quiz continua em uma página separada.
 
-## Estrutura (arquivos na raiz do ZIP)
+## Estrutura
 
-- `index.html`: apresentação em vídeo (VSL) em tela cheia. A headline é “Seus 15 anos começam antes da festa.”, acompanhada do subtítulo. Ambos surgem com fade de baixo para cima, primeiro o título, depois o subtítulo. O botão **Ver temas** só aparece após um segundo de vídeo efetivamente reproduzido e após a animação dos textos.
-- `catalogo.html`: abre diretamente na seção **“MUITO ALÉM DE UMA IMAGEM / Antes da festa, um primeiro encanto.”**, com baralho sobreposto de exemplos completos. As cartas podem ser arrastadas lateralmente quando houver 2 ou mais exemplos, e o toque na carta principal abre o convite pronto em outra aba. O botão **Escolher tema** desce suavemente até os modelos em cards. Inclui opção **Sua ideia**, quatro benefícios preservados, seis cards menores com recursos do convite, etapas informativas e um fade inferior incentivando a rolagem.
-- `quiz.html`: última página, **“UM ÚLTIMO PASSO / Conte um pouco sobre a festa.”**. O tema selecionado no catálogo aparece no destaque com a foto e a paleta configurada para aquele tema. Recolhe nome do responsável e da debutante, data, hora e local opcionais, além da confirmação solicitada. Apenas quem escolhe **Sua ideia** vê o campo **“Como você imagina seu convite?” (opcional)**.
-- `config.js`: configura WhatsApp, vídeo, temas, cores e exemplos interativos.
-- `script.js`: lógica de navegação do funil, animações de scroll, cartas e mensagem do WhatsApp.
-- `style.css`: identidade visual e layout responsivo.
-- `assets/`: logo e capa original de 15 anos, exatamente como estavam no ZIP original.
+- `index.html` — VSL em tela cheia + catálogo na mesma página + benefícios + recursos + processo.
+- `quiz.html` — briefing personalizado, tema pré-selecionado, idade ajustável e envio preparado para WhatsApp.
+- `catalogo.html` — redirecionamento de compatibilidade para `index.html#catalogo` (links antigos continuam funcionando).
+- `style.css` — identidade visual, transições, baralho e layout mobile-first.
+- `script.js` — reprodução da VSL, animações, baralho, vídeos ativos, seleção de tema, quiz e WhatsApp.
+- `config.js` — número de WhatsApp, vídeo e cadastro de temas.
+- `assets/logo-convite-premium.webp` — logo utilizada na VSL e no rodapé.
+- `assets/video/` — vídeo ambiente demonstrativo da VSL, em MP4 e WebM, e seu poster.
+- `assets/temas/` — sete capas demonstrativas e vídeos MP4/WebM para cada carta.
 
-O funil esperado é: **WhatsApp inicial (saudação configurada no aplicativo) → VSL → Catálogo e temas → Quiz → WhatsApp com mensagem preenchida**. O cliente deve clicar em **Enviar** no WhatsApp. **Este site não cria convites, não gera prévia e não mostra preços.** O material do quiz é apenas um briefing para a criação manual.
+## O que está implementado
 
-## Pendências obrigatórias para publicar a versão final
+### VSL
 
-**1. Vídeo da VSL.** Ainda não foi fornecido um MP4. Copie-o para `assets/vsl-15anos.mp4` e ajuste em `config.js`:
+- Vídeo em tela cheia com `autoplay`, `muted`, `loop` e `playsinline`.
+- O vídeo inicia sem áudio; o botão **Ativar som / Som ativado** permite ligar ou desligar o áudio após interação do visitante.
+- Após **3 segundos de reprodução efetiva**, a headline aparece em fade de baixo para cima; depois entra a subheadline e, por último, o botão **Ver temas**.
+- O botão tem texto centralizado, sem seta lateral, flutua suavemente e executa uma ondulação ao toque; em seguida rola para o catálogo na mesma página.
+- Não há faixa branca de cabeçalho entre a VSL e o catálogo.
+- A transição de fundo entre a VSL e o catálogo começa no mesmo azul-marinho escuro, misturando-se gradualmente ao azul do catálogo.
+- Não há linhas de progresso nem a mensagem “prévia estática / vídeo pendente”.
 
-```js
-video: {
-  src: 'assets/vsl-15anos.mp4',
-  poster: 'assets/capa-15anos.webp',
-  liberarAposSegundos: 1
-},
-```
+### Catálogo
 
-Quando `src` está vazio, `index.html` exibe a capa como **prévia temporária**, liberando o avanço após um segundo apenas para permitir testes. **Isso não significa que alguém assistiu à VSL.** Se existir um MP4 configurado e ele não puder ser reproduzido, a etapa não será liberada. Browsers móveis frequentemente **bloqueiam autoplay com áudio**: nesses casos o visitante verá **“Toque no vídeo para assistir com som”**, que reproduz o vídeo com áudio após o toque.
+- O catálogo começa imediatamente após a VSL, sem uma faixa branca com logo, título ou botão.
+- A seção “Muito além de uma imagem / Antes da festa, um primeiro encanto” é o início do catálogo.
+- O baralho é o seletor de temas: sete temas demonstrativos e a carta **Sua ideia** como última opção.
+- Arraste para a esquerda/direita, use as setas ou navegue pelo teclado. A carta ativa inclina e acompanha o dedo; as cartas de trás mudam de posição com transição elástica.
+- **Todas as sete cartas de temas possuem MP4 e WebM.** Somente a carta que está na frente e quando o baralho está visível reproduz seu vídeo, automaticamente e sem áudio. As outras cartas ficam em pausa e mostram a capa/poster. Ao trocar de carta ou sair da área visível, o vídeo anterior é pausado.
+- A carta **Sua ideia** é uma carta gráfica final, sem vídeo, e conduz ao quiz com a descrição opcional.
+- Tocar na carta da frente seleciona o tema e abre o quiz.
+- O degradê inferior é suave, permanece durante a rolagem e desaparece ao chegar ao final da página.
+- Benefícios, “Tudo em um único link”, processo e rodapé foram mantidos.
 
-**2. Temas.** Atualmente há somente o tema real **Azul & Dourado**. Cadastre os futuros 7 ou mais modelos em `config.js`, cada um com um ID exclusivo, nome, descrição, foto e três cores hexadecimais. A lista cresce automaticamente; não precisa modificar o HTML.
+### Quiz
 
-Exemplo de cadastro (apenas modelo de configuração, não um produto já incluído):
+- O cabeçalho do quiz não mostra logo nem o título “Catálogo”; contém apenas o botão **← Voltar**, alinhado à esquerda.
+- O tema escolhido é exibido em um cartão com cores e textura configuradas para aquele tema.
+- A idade começa selecionada em **15 anos**. Se o visitante escolher **Escolher outra idade**, aparece um campo numérico obrigatório.
+- O campo de local pede o link do Google Maps ou do mapa do local; é opcional e pode ser preenchido depois.
+- Para **Sua ideia**, aparece o campo de descrição opcional.
+- O formulário monta a mensagem e abre o WhatsApp; o visitante ainda precisa tocar em **Enviar**.
 
-```js
-{
-  id: 'rosas-vermelhas',
-  nome: 'Rosas Vermelhas',
-  descricao: 'Rosas · Vermelho · Elegante',
-  imagem: 'assets/rosas-vermelhas.webp',
-  cores: { principal: '#3b1023', secundaria: '#741e3a', destaque: '#f6c9ca' }
-}
-```
+## Temas demonstrativos incluídos
 
-Coloque a imagem correspondente em `assets/`. Use cores de fundo escuras, pois o texto sobre a célula no quiz é branco. **Sua ideia** é acrescentado pelo sistema e não precisa entrar em `temas`.
+1. Azul & Dourado
+2. Rosas Vermelhas
+3. Jardim Encantado
+4. Borboletas Lilás
+5. Noite de Gala
+6. Pérolas & Champagne
+7. Céu Estrelado
+8. Sua ideia (carta final automática)
 
-**3. Exemplos reais do baralho.** A seção “Muito além de uma imagem” atualmente tem um exemplo original, **Nycolle**. Confirme se o link está publicado e se abre o convite real. Adicione quantos exemplos concluídos quiser no array `exemplos` do `config.js`:
+As sete artes são **mockups demonstrativos para testar o baralho**, não convites finais vendidos.
 
-```js
-{
-  id: 'mariana',
-  nome: '15 anos · Mariana',
-  legenda: 'Jardim de Rosas',
-  imagem: 'assets/mariana.webp',
-  url: 'https://seu-usuario.github.io/convite-mariana/'
-}
-```
+### Sobre os vídeos dos temas
 
-As cartas se empilham automaticamente e podem ser trocadas com gesto lateral, setas ou teclado. Com apenas um exemplo, o baralho permanece no mesmo estilo, porém não tem alternância.
+- Azul & Dourado usa o vídeo demonstrativo já existente.
+- Os outros seis vídeos são loops curtos criados a partir das capas estáticas, com movimento suave de aproximação/afastamento para demonstrar o autoplay ao trocar a carta.
+- Esses seis loops **não representam animações reais dos convites finais**. Substitua-os pelos vídeos finais dos convites quando estiverem prontos.
+- Cada tema usa `videoMp4` e `videoWebm` no `config.js`. O MP4 é a primeira opção, para melhor compatibilidade com celulares; o WebM é a alternativa.
 
-**4. WhatsApp.** Verifique `whatsapp` em `config.js` (apenas DDI+DDD+número, sem símbolos). Um botão `wa.me` **abre a conversa com texto pré-preenchido; não envia sozinho**. A saudação com o link do catálogo é configurada separadamente no WhatsApp Business e **não** faz parte deste site.
+Para adicionar outro tema, inclua um objeto no array `temas` de `config.js`, coloque a capa em `assets/temas/` e adicione os caminhos `videoMp4` e `videoWebm`. A carta **Sua ideia** é inserida automaticamente e não deve ser cadastrada no array.
 
-## Navegação e privacidade
+## Vídeos: o que substituir antes de divulgar
 
-- A navegação normal usa três páginas reais, não um formulário de etapa única.
-- `sessionStorage` armazena **somente um sinal de conclusão da VSL e o ID do tema selecionado**, nesta sessão do navegador. Dados pessoais do quiz não são armazenados pelo site nem enviados a um servidor próprio; serão incluídos no link da mensagem somente se a pessoa confirmar o formulário.
-- Essa proteção de sequência é **apenas de experiência do usuário**, não autenticação ou bloqueio inviolável.
-- As animações de aparição usam `IntersectionObserver` e respeitam a preferência de **reduzir movimento**. O gradiente inferior some quando a pessoa começa a rolar, para não ocultar o conteúdo.
+Este pacote inclui vídeos demonstrativos:
 
-## Publicar no GitHub Pages
+- `assets/video/vsl-preview.mp4` / `assets/video/vsl-preview.webm`: fundo animado demonstrativo da VSL. **Não é a VSL comercial final** e não contém narração/áudio.
+- `assets/temas/*.mp4` e `assets/temas/*.webm`: loops de teste para que cada tema reproduza vídeo quando assumir a posição principal.
 
-1. **Extraia o ZIP.** Os arquivos `index.html`, `catalogo.html`, `quiz.html`, `style.css`, `script.js`, `config.js` e a pasta `assets/` devem ficar **na raiz do repositório**, nunca dentro de uma pasta `mnt/`, `data/` ou outra subpasta extra.
-2. Adicione o MP4, os modelos e seus links, e revise o número do WhatsApp.
-3. Substitua os arquivos antigos no repositório `LP-Catalogo` pelo conteúdo extraído e aguarde a atualização do GitHub Pages.
-4. Teste em celular real: reprodução do vídeo com som após toque; aparecimento do botão depois de um segundo; arraste dos exemplos; rolagem até os cards; escolha normal e Sua ideia; formulário; link gerado e envio manual no WhatsApp.
+Quando seu vídeo real da VSL estiver pronto:
 
-**Não publique como versão definitiva enquanto o vídeo e os exemplos/modelos que você promete mostrar não estiverem prontos.** O site não foi publicado automaticamente ao gerar este ZIP.
+1. Coloque o arquivo em `assets/video/` (recomendo MP4 H.264; WebM pode ser usado como alternativa).
+2. Abra `config.js` e altere `video.src` para o caminho MP4 real e `video.webm` para o WebM alternativo, se houver.
+3. Se necessário, altere `video.poster` para a imagem de capa correspondente.
+4. O botão de som já está preparado: o vídeo começa silencioso e o visitante pode ativar o áudio.
+
+Autoplay com áudio não é garantido por navegadores móveis. Por isso, o vídeo começa silencioso; o áudio só é ativado após o toque no controle.
+
+## Configuração obrigatória antes da publicação
+
+1. **WhatsApp:** confirme o valor `whatsapp` em `config.js` (formato internacional com DDI + DDD + número, somente dígitos). O projeto preservou o número que já constava na versão anterior: `5588994897535`.
+2. **VSL:** substitua o vídeo ambiente demonstrativo pelo vídeo comercial real.
+3. **Temas:** substitua os mockups pelas artes finais e atualize nomes, descrições, paletas e texturas no `config.js`.
+4. **Vídeos dos temas:** substitua os loops de demonstração por prévias reais de cada convite quando disponíveis.
+
+## Como publicar no GitHub Pages
+
+1. Faça backup do repositório atual.
+2. Extraia **todo o conteúdo deste ZIP** diretamente na raiz do repositório `LP-Catalogo`, mantendo a pasta `assets/` e os arquivos `index.html`, `quiz.html`, `catalogo.html`, `style.css`, `script.js`, `config.js` e `README.md` na raiz.
+3. Faça commit e aguarde o GitHub Pages atualizar.
+4. Teste em celular real: autoplay silencioso da VSL, ativar som, texto após 3 segundos, botão centralizado, transição sem cabeçalho branco, troca entre as sete cartas com vídeo, carta final **Sua ideia**, botão Voltar, idade alternativa, campo do Maps e mensagem do WhatsApp.
+
+## Privacidade e limites
+
+- O site não cria convites nem prévias. Ele apenas coleta os dados no navegador e prepara o briefing.
+- Não há banco de dados ou envio dos campos para um servidor próprio.
+- A mensagem abre no WhatsApp; **o cliente precisa confirmar e tocar em Enviar**.
+- `sessionStorage` é usado apenas para manter o ID do tema escolhido durante o fluxo do navegador. Isso não é uma barreira de segurança.
