@@ -11,7 +11,7 @@ Projeto estático **mobile-first** para GitHub Pages. A VSL e o catálogo ficam 
 - `script.js` — reprodução da VSL, animações, baralho, vídeos ativos, seleção de tema, quiz e WhatsApp.
 - `config.js` — número de WhatsApp, vídeo e cadastro de temas.
 - `assets/logo-convite-premium.webp` — logo utilizada na VSL e no rodapé.
-- `assets/video/` — vídeo ambiente demonstrativo da VSL, em MP4 e WebM, e seu poster.
+- `assets/video/` — VSL enviada pelo usuário, convertida para MP4 H.264 e WebM VP9, com poster otimizado.
 - `assets/temas/` — sete capas demonstrativas e vídeos MP4/WebM para cada carta.
 
 ## O que está implementado
@@ -69,26 +69,25 @@ As sete artes são **mockups demonstrativos para testar o baralho**, não convit
 
 Para adicionar outro tema, inclua um objeto no array `temas` de `config.js`, coloque a capa em `assets/temas/` e adicione os caminhos `videoMp4` e `videoWebm`. A carta **Sua ideia** é inserida automaticamente e não deve ser cadastrada no array.
 
-## Vídeos: o que substituir antes de divulgar
+## VSL real integrada
 
-Este pacote inclui vídeos demonstrativos:
+O vídeo enviado foi integrado ao projeto e convertido para formatos compatíveis com navegadores atuais:
 
-- `assets/video/vsl-preview.mp4` / `assets/video/vsl-preview.webm`: fundo animado demonstrativo da VSL. **Não é a VSL comercial final** e não contém narração/áudio.
-- `assets/temas/*.mp4` e `assets/temas/*.webm`: loops de teste para que cada tema reproduza vídeo quando assumir a posição principal.
+- `assets/video/vsl-15anos.mp4`: MP4 H.264, 1080 × 1920, áudio AAC estéreo.
+- `assets/video/vsl-15anos.webm`: WebM VP9, 720 × 1280, áudio Opus estéreo.
+- `assets/video/vsl-15anos-poster.webp`: imagem de capa extraída do vídeo.
+- Duração original preservada: aproximadamente 12,17 segundos.
 
-Quando seu vídeo real da VSL estiver pronto:
+A página inicia a reprodução automaticamente, sem som, em `autoplay`, `muted` e `playsinline`. O botão **Ativar som** permite ligar o áudio após o toque do visitante. Após 3 segundos de reprodução efetiva, entram a headline, a subheadline e o botão **Ver temas**.
 
-1. Coloque o arquivo em `assets/video/` (recomendo MP4 H.264; WebM pode ser usado como alternativa).
-2. Abra `config.js` e altere `video.src` para o caminho MP4 real e `video.webm` para o WebM alternativo, se houver.
-3. Se necessário, altere `video.poster` para a imagem de capa correspondente.
-4. O botão de som já está preparado: o vídeo começa silencioso e o visitante pode ativar o áudio.
+O arquivo original enviado estava em HEVC. A conversão para H.264/WebM foi feita para melhorar a compatibilidade entre Safari, Chrome e navegadores móveis, preservando a trilha de áudio.
 
-Autoplay com áudio não é garantido por navegadores móveis. Por isso, o vídeo começa silencioso; o áudio só é ativado após o toque no controle.
+Os arquivos `assets/temas/*.mp4` e `assets/temas/*.webm` continuam sendo loops demonstrativos dos temas. Substitua-os pelas prévias finais dos convites quando estiverem prontas.
 
 ## Configuração obrigatória antes da publicação
 
 1. **WhatsApp:** confirme o valor `whatsapp` em `config.js` (formato internacional com DDI + DDD + número, somente dígitos). O projeto preservou o número que já constava na versão anterior: `5588994897535`.
-2. **VSL:** substitua o vídeo ambiente demonstrativo pelo vídeo comercial real.
+2. **VSL:** a versão enviada já está integrada. Confira a reprodução e o áudio no celular de destino.
 3. **Temas:** substitua os mockups pelas artes finais e atualize nomes, descrições, paletas e texturas no `config.js`.
 4. **Vídeos dos temas:** substitua os loops de demonstração por prévias reais de cada convite quando disponíveis.
 

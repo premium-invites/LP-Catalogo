@@ -8,9 +8,9 @@
 window.SITE_CONFIG = {
   whatsapp: '5588994897535', // Confirme o número antes da publicação (DDI + DDD + número).
   video: {
-    src: 'assets/video/vsl-preview.mp4',
-    webm: 'assets/video/vsl-preview.webm',
-    poster: 'assets/video/vsl-preview-poster.webp',
+    src: 'assets/video/vsl-15anos.mp4',
+    webm: 'assets/video/vsl-15anos.webm',
+    poster: 'assets/video/vsl-15anos-poster.webp',
     revealAfterSeconds: 3
   },
   temas: [

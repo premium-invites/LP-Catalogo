@@ -193,7 +193,7 @@
       } else {
         const image = document.createElement('img');
         image.className = 'deck-card-image';
-        image.src = theme.imagem || 'assets/video/vsl-preview-poster.webp';
+        image.src = theme.imagem || 'assets/video/vsl-15anos-poster.webp';
         image.alt = '';
         image.loading = index < 2 ? 'eager' : 'lazy';
         image.decoding = 'async';
