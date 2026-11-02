@@ -64,3 +64,43 @@
   .site-header-quiz .site-header-inner{min-height:66px}
   .quiz-back-link{font-size:.68rem;padding:9px 13px}
 }
+
+
+/* V7 — roleta de idade, de 1 a 99 anos */
+.age-wheel-trigger{
+  width:100%;min-height:52px;padding:12px 15px;border:1px solid #dedde0;border-radius:10px;
+  background:#fff;color:#26334a;display:flex;align-items:center;justify-content:space-between;
+  font-size:.9rem;font-weight:700;text-align:left;box-shadow:0 4px 14px rgba(20,32,52,.035)
+}
+.age-wheel-trigger:focus-visible{outline:3px solid rgba(196,155,92,.35);outline-offset:2px}
+.age-wheel-chevron{font-size:1.25rem;color:var(--gold);line-height:1}
+.age-wheel-backdrop{
+  position:fixed;inset:0;z-index:1000;background:rgba(5,12,25,.62);backdrop-filter:blur(5px);
+  display:flex;align-items:center;justify-content:center;padding:20px
+}
+.age-wheel-dialog{
+  width:min(100%,370px);background:linear-gradient(150deg,#fffefa,#f5efe5);
+  border:1px solid #dfc89f;border-radius:22px;padding:19px 18px 17px;
+  box-shadow:0 25px 90px rgba(0,0,0,.32);animation:age-wheel-enter .24s ease-out both
+}
+@keyframes age-wheel-enter{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.age-wheel-heading{display:flex;align-items:center;justify-content:space-between;color:#152b4c;font-family:var(--serif);font-size:1.25rem;font-weight:700}
+.age-wheel-heading button{width:34px;height:34px;border:0;border-radius:50%;background:#eee5d7;color:#70552d;font-size:1.35rem}
+.age-wheel-caption{font-size:.72rem;color:#778092;margin:5px 0 13px}
+.age-wheel-window{
+  height:220px;overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y mandatory;
+  scrollbar-width:none;position:relative;padding-block:88px;mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);
+}
+.age-wheel-window::-webkit-scrollbar{display:none}
+.age-wheel-option{
+  width:100%;height:44px;display:flex;align-items:center;justify-content:center;
+  scroll-snap-align:center;border:0;border-radius:10px;background:transparent;color:#8b8d93;
+  font-size:1.02rem;font-weight:500;transition:background .15s,color .15s,transform .15s
+}
+.age-wheel-option.is-selected{background:linear-gradient(100deg,#f0d8a6,#d7ae68);color:#172b49;font-weight:800;transform:scale(1.025);box-shadow:0 5px 18px rgba(166,125,55,.18)}
+.age-wheel-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:13px}
+.age-wheel-actions button{min-height:46px;border-radius:11px;font-weight:800;font-size:.78rem}
+.age-wheel-cancel{border:1px solid #dfd4c3;background:#fff;color:#536075}
+.age-wheel-confirm{border:1px solid #c79c58;background:linear-gradient(100deg,#e9c985,#c89b55);color:#152846}
+@media (prefers-reduced-motion:reduce){.age-wheel-dialog{animation:none}.age-wheel-option{transition:none}}

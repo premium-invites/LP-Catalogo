@@ -421,17 +421,87 @@
     descriptionInput.disabled = !other;
 
     const ageSelect = one('#idadeSelect');
-    const otherAgeField = one('#otherAgeField');
-    const otherAgeInput = one('#idadeOutra');
-    function syncAgeField() {
-      const isOther = ageSelect.value === 'outra';
-      otherAgeField.hidden = !isOther;
-      otherAgeInput.disabled = !isOther;
-      otherAgeInput.required = isOther;
-      if (!isOther) otherAgeInput.value = '';
+    const ageTrigger = one('#ageWheelTrigger');
+    const ageValue = one('#ageWheelValue');
+    const ageBackdrop = one('#ageWheelBackdrop');
+    const ageWindow = one('#ageWheelWindow');
+    const ageConfirm = one('#ageWheelConfirm');
+    const ageCancel = one('#ageWheelCancel');
+    const ageClose = one('#ageWheelClose');
+    let pendingAge = 15;
+
+    // Roleta vertical de 1 a 99 anos, com 15 como valor inicial.
+    for (let age = 1; age <= 99; age++) {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'age-wheel-option';
+      option.dataset.age = String(age);
+      option.setAttribute('role', 'option');
+      option.setAttribute('aria-selected', String(age === 15));
+      option.textContent = `${age} anos`;
+      option.addEventListener('click', () => {
+        pendingAge = age;
+        updateWheelSelection();
+        option.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+      ageWindow.append(option);
     }
-    ageSelect.addEventListener('change', syncAgeField);
-    syncAgeField();
+
+    function updateWheelSelection() {
+      all('.age-wheel-option', ageWindow).forEach(option => {
+        const selected = Number(option.dataset.age) === pendingAge;
+        option.classList.toggle('is-selected', selected);
+        option.setAttribute('aria-selected', String(selected));
+      });
+    }
+    function openAgeWheel() {
+      pendingAge = Number(ageSelect.value) || 15;
+      ageBackdrop.hidden = false;
+      ageTrigger.setAttribute('aria-expanded', 'true');
+      updateWheelSelection();
+      const selected = one(`.age-wheel-option[data-age="${pendingAge}"]`, ageWindow);
+      requestAnimationFrame(() => selected?.scrollIntoView({ block: 'center', behavior: 'auto' }));
+      ageClose.focus();
+    }
+    function closeAgeWheel() {
+      ageBackdrop.hidden = true;
+      ageTrigger.setAttribute('aria-expanded', 'false');
+      ageTrigger.focus();
+    }
+    ageTrigger.addEventListener('click', openAgeWheel);
+    ageCancel.addEventListener('click', closeAgeWheel);
+    ageClose.addEventListener('click', closeAgeWheel);
+    ageBackdrop.addEventListener('click', event => {
+      if (event.target === ageBackdrop) closeAgeWheel();
+    });
+    ageWindow.addEventListener('scroll', () => {
+      const center = ageWindow.scrollTop + ageWindow.clientHeight / 2;
+      const options = all('.age-wheel-option', ageWindow);
+      let closest = null, minDistance = Infinity;
+      options.forEach(option => {
+        const mid = option.offsetTop + option.offsetHeight / 2;
+        const distance = Math.abs(mid - center);
+        if (distance < minDistance) { minDistance = distance; closest = option; }
+      });
+      if (closest) {
+        pendingAge = Number(closest.dataset.age);
+        updateWheelSelection();
+      }
+    }, { passive: true });
+    ageWindow.addEventListener('keydown', event => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        pendingAge = Math.max(1, Math.min(99, pendingAge + (event.key === 'ArrowDown' ? 1 : -1)));
+        updateWheelSelection();
+        one(`.age-wheel-option[data-age="${pendingAge}"]`, ageWindow)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    });
+    ageConfirm.addEventListener('click', () => {
+      ageSelect.value = String(pendingAge);
+      ageValue.textContent = `${pendingAge} anos`;
+      closeAgeWheel();
+    });
+
 
     const form = one('#quizForm');
     const whatsapp = String(config.whatsapp || '').replace(/\D/g, '');
@@ -447,7 +517,7 @@
         const parts = iso.split('-');
         return parts.length === 3 ? parts.reverse().join('/') : iso;
       };
-      const age = ageSelect.value === 'outra' ? clean(otherAgeInput.value) : '15';
+      const age = String(Number(ageSelect.value) || 15);
       const contact = clean(one('#responsavel').value);
       const debutante = clean(one('#aniversariante').value);
       const eventDate = one('#dataEvento').value;
@@ -465,7 +535,7 @@
       ];
       if (eventDate) lines.push('• Data da festa: ' + formatDate(eventDate));
       if (eventTime) lines.push('• Horário: ' + eventTime);
-      if (mapLink) lines.push('• Link do local: ' + mapLink);
+      if (mapLink) lines.push('• Local da festa: ' + mapLink);
       if (other) lines.push('• Ideia de tema: ' + (description || 'Prefiro explicar pelo WhatsApp.'));
       lines.push('', 'Gostaria de confirmar os detalhes e conversar sobre a criação da prévia.');
       window.location.assign('https://wa.me/' + whatsapp + '?text=' + encodeURIComponent(lines.join('\n')));
