@@ -35,14 +35,18 @@
     if (sourceWebm && config.video?.webm) sourceWebm.src = config.video.webm;
     if (config.video?.poster) video.poster = config.video.poster;
     video.load();
+
     let copyStarted = false;
+    let userStartedVideo = false;
 
     function updateSoundControl() {
       soundButton.setAttribute('aria-pressed', String(!video.muted));
-      soundButton.setAttribute('aria-label', video.muted ? 'Ativar som do vídeo' : 'Silenciar vídeo');
-      soundText.textContent = video.muted ? 'Ativar som' : 'Som ativado';
+      soundButton.setAttribute('aria-label', video.muted ? 'Ativar som do vídeo' : 'Desativar som do vídeo');
+      soundText.textContent = video.muted ? 'Ativar som' : 'Desativar som';
       soundButton.classList.toggle('is-on', !video.muted);
+      soundButton.hidden = !userStartedVideo;
     }
+
     function revealCopy() {
       if (copyStarted) return;
       copyStarted = true;
@@ -50,59 +54,64 @@
       window.setTimeout(() => subheadline.classList.add('is-visible'), 1050);
       window.setTimeout(() => cta.classList.add('is-visible'), 2150);
     }
-    function startPlaybackFromGesture() {
-      video.muted = true;
-      const result = video.play();
-      if (result && typeof result.then === 'function') result.then(() => { playOverlay.hidden = true; }).catch(() => { playOverlay.hidden = false; });
-      updateSoundControl();
+
+    async function startPlaybackFromGesture() {
+      if (userStartedVideo) return;
+      userStartedVideo = true;
+      video.muted = false;
+      video.volume = 1;
+      video.currentTime = 0;
+      try {
+        await video.play();
+        playOverlay.hidden = true;
+        updateSoundControl();
+      } catch (error) {
+        userStartedVideo = false;
+        video.muted = true;
+        playOverlay.hidden = false;
+        const label = one('span:last-child', playOverlay);
+        if (label) label.textContent = 'Toque para tentar reproduzir novamente';
+        updateSoundControl();
+      }
     }
 
-    video.muted = true;
-    video.playsInline = true;
     video.loop = true;
-    video.autoplay = true;
+    video.playsInline = true;
+    video.autoplay = false;
+    video.muted = true;
+    video.controls = false;
+
     video.addEventListener('timeupdate', () => {
-      if (!copyStarted && !video.seeking && video.currentTime >= revealAt) revealCopy();
+      if (userStartedVideo && !copyStarted && !video.seeking && video.currentTime >= revealAt) revealCopy();
     });
-    video.addEventListener('playing', () => { playOverlay.hidden = true; });
+    video.addEventListener('playing', () => {
+      if (userStartedVideo) playOverlay.hidden = true;
+    });
     video.addEventListener('error', () => {
       playOverlay.hidden = false;
       const label = one('span:last-child', playOverlay);
       if (label) label.textContent = 'Vídeo indisponível · toque para tentar novamente';
     });
+
     playOverlay.addEventListener('click', startPlaybackFromGesture);
     soundButton.addEventListener('click', () => {
-      if (video.muted) {
-        video.muted = false;
-        const result = video.play();
-        if (result && typeof result.catch === 'function') result.catch(() => { video.muted = true; updateSoundControl(); });
-      } else video.muted = true;
+      if (!userStartedVideo) return;
+      video.muted = !video.muted;
       updateSoundControl();
     });
-    // Ao sair visualmente da VSL, corta o áudio imediatamente.
-    // O vídeo pode continuar em segundo plano, mas não mantém som durante o catálogo.
-    const vslSection = one('#inicio');
-    if ('IntersectionObserver' in window && vslSection) {
-      const vslAudioObserver = new IntersectionObserver(entries => {
-        const entry = entries[0];
-        if (!entry || entry.intersectionRatio < 0.35) {
-          if (!video.muted) {
-            video.muted = true;
-            updateSoundControl();
-          }
-        }
-      }, { threshold: [0, 0.2, 0.35, 0.5] });
-      vslAudioObserver.observe(vslSection);
-      const muteWhenLeavingVsl = () => {
-        const rect = vslSection.getBoundingClientRect();
-        if (rect.bottom < window.innerHeight * 0.35 && !video.muted) {
-          video.muted = true;
-          updateSoundControl();
-        }
-      };
-      window.addEventListener('scroll', muteWhenLeavingVsl, { passive: true });
-    }
-    cta.addEventListener('click', event => {
+
+    // Se a pessoa preferir rolar sem dar play, libera o texto e o CTA
+    // para que a navegação até o catálogo não dependa do vídeo.
+    let scrollRevealDone = false;
+    const revealOnScroll = () => {
+      if (!scrollRevealDone && window.scrollY > 35) {
+        scrollRevealDone = true;
+        revealCopy();
+      }
+    };
+    window.addEventListener('scroll', revealOnScroll, { passive: true });
+
+    const ctaClick = event => {
       event.preventDefault();
       cta.classList.remove('ripple-active');
       void cta.offsetWidth;
@@ -113,11 +122,10 @@
         target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
         cta.classList.remove('ripple-active');
       }, 360);
-    });
+    };
+    cta.addEventListener('click', ctaClick);
+
     updateSoundControl();
-    // Autoplay silencioso: o áudio só é ativado após ação explícita do visitante.
-    const result = video.play();
-    if (result && typeof result.then === 'function') result.then(() => { playOverlay.hidden = true; }).catch(() => { playOverlay.hidden = false; });
   }
 
   function initReveals() {
@@ -504,23 +512,45 @@
 
 
     const form = one('#quizForm');
+    const dateInput = one('#dataEvento');
     const whatsapp = String(config.whatsapp || '').replace(/\D/g, '');
+
+    // Máscara brasileira DD/MM/AAAA e validação de calendário.
+    dateInput.addEventListener('input', () => {
+      const digits = dateInput.value.replace(/\D/g, '').slice(0, 8);
+      let masked = digits;
+      if (digits.length > 4) masked = digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
+      else if (digits.length > 2) masked = digits.slice(0, 2) + '/' + digits.slice(2);
+      dateInput.value = masked;
+      dateInput.setCustomValidity('');
+    });
+    dateInput.addEventListener('blur', () => {
+      const value = dateInput.value.trim();
+      if (!value) { dateInput.setCustomValidity(''); return; }
+      dateInput.setCustomValidity(isValidBrazilianDate(value) ? '' : 'Informe uma data válida no formato DD/MM/AAAA.');
+    });
+    function isValidBrazilianDate(value) {
+      const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+      if (!match) return false;
+      const day = Number(match[1]), month = Number(match[2]), year = Number(match[3]);
+      const date = new Date(year, month - 1, day);
+      return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+    }
+
     form.addEventListener('submit', event => {
       event.preventDefault();
+      const dateValue = dateInput.value.trim();
+      dateInput.setCustomValidity(dateValue && !isValidBrazilianDate(dateValue) ? 'Informe uma data válida no formato DD/MM/AAAA.' : '');
       if (!form.reportValidity()) return;
       if (!/^\d{10,15}$/.test(whatsapp)) {
         alert('O WhatsApp ainda não foi configurado corretamente. Avise o responsável pelo catálogo.');
         return;
       }
       const clean = value => String(value || '').trim().replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ');
-      const formatDate = iso => {
-        const parts = iso.split('-');
-        return parts.length === 3 ? parts.reverse().join('/') : iso;
-      };
       const age = String(Number(ageSelect.value) || 15);
       const contact = clean(one('#responsavel').value);
       const debutante = clean(one('#aniversariante').value);
-      const eventDate = one('#dataEvento').value;
+      const eventDate = dateInput.value.trim();
       const eventTime = one('#horaEvento').value;
       const mapLink = clean(one('#localEvento').value);
       const description = other ? clean(descriptionInput.value) : '';
@@ -533,7 +563,7 @@
         '• Comemoração: ' + age + ' anos',
         '• Tema escolhido: ' + theme.nome
       ];
-      if (eventDate) lines.push('• Data da festa: ' + formatDate(eventDate));
+      if (eventDate) lines.push('• Data da festa: ' + eventDate);
       if (eventTime) lines.push('• Horário: ' + eventTime);
       if (mapLink) lines.push('• Local da festa: ' + mapLink);
       if (other) lines.push('• Ideia de tema: ' + (description || 'Prefiro explicar pelo WhatsApp.'));

@@ -24,7 +24,7 @@
     <!-- VSL: primeira tela do funil -->
     <section class="vsl-screen" id="inicio" aria-labelledby="introTitle">
       <div class="vsl-media" aria-hidden="true">
-        <video id="introVideo" class="vsl-video" autoplay muted loop playsinline preload="auto" poster="assets/catalogo-whatsapp.webp">
+        <video id="introVideo" class="vsl-video" loop playsinline preload="metadata" poster="assets/catalogo-whatsapp.webp">
           <source src="assets/video/vsl-15anos.mp4" type="video/mp4">
           <source src="assets/video/vsl-15anos.webm" type="video/webm">
         </video>
@@ -35,14 +35,14 @@
         <a class="vsl-logo-wrap" href="#inicio" aria-label="Convite Premium — início">
           <img class="vsl-logo" src="assets/logo-convite-premium.webp" width="132" height="102" alt="Convite Premium">
         </a>
-        <button type="button" class="sound-toggle" id="soundButton" aria-pressed="false" aria-label="Ativar som do vídeo">
+        <button type="button" class="sound-toggle" id="soundButton" aria-pressed="true" aria-label="Desativar som do vídeo" hidden>
           <span class="sound-icon" aria-hidden="true">♫</span>
-          <span id="soundButtonText">Ativar som</span>
+          <span id="soundButtonText">Desativar som</span>
         </button>
       </header>
-      <button type="button" class="vsl-play-overlay" id="vslPlayOverlay" hidden>
+      <button type="button" class="vsl-play-overlay" id="vslPlayOverlay" aria-label="Reproduzir vídeo com som">
         <span class="vsl-play-icon" aria-hidden="true">▶</span>
-        <span>Toque para reproduzir o vídeo</span>
+        <span>Reproduzir vídeo</span>
       </button>
       <div class="vsl-copy">
         <h1 id="introTitle" class="vsl-headline">Seu aniversário começa <em>muito antes da festa.</em></h1>
