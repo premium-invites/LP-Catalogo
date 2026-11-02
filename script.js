@@ -79,6 +79,29 @@
       } else video.muted = true;
       updateSoundControl();
     });
+    // Ao sair visualmente da VSL, corta o áudio imediatamente.
+    // O vídeo pode continuar em segundo plano, mas não mantém som durante o catálogo.
+    const vslSection = one('#inicio');
+    if ('IntersectionObserver' in window && vslSection) {
+      const vslAudioObserver = new IntersectionObserver(entries => {
+        const entry = entries[0];
+        if (!entry || entry.intersectionRatio < 0.35) {
+          if (!video.muted) {
+            video.muted = true;
+            updateSoundControl();
+          }
+        }
+      }, { threshold: [0, 0.2, 0.35, 0.5] });
+      vslAudioObserver.observe(vslSection);
+      const muteWhenLeavingVsl = () => {
+        const rect = vslSection.getBoundingClientRect();
+        if (rect.bottom < window.innerHeight * 0.35 && !video.muted) {
+          video.muted = true;
+          updateSoundControl();
+        }
+      };
+      window.addEventListener('scroll', muteWhenLeavingVsl, { passive: true });
+    }
     cta.addEventListener('click', event => {
       event.preventDefault();
       cta.classList.remove('ripple-active');
@@ -436,7 +459,7 @@
         '',
         '📋 *DADOS DO PEDIDO*',
         '• Responsável: ' + contact,
-        '• Nome da debutante: ' + debutante,
+        '• Nome da aniversariante: ' + debutante,
         '• Comemoração: ' + age + ' anos',
         '• Tema escolhido: ' + theme.nome
       ];
