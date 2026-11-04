@@ -6,7 +6,7 @@
  * Substitua as imagens e vídeos demonstrativos pelos materiais finais antes de divulgar.
  */
 window.SITE_CONFIG = {
-  whatsapp: '5588981346442', // Confirme o número antes da publicação (DDI + DDD + número).
+  whatsapp: '5588988692212', // Confirme o número antes da publicação (DDI + DDD + número).
   video: {
     src: 'assets/video/vsl-15anos.mp4',
     webm: 'assets/video/vsl-15anos.webm',
