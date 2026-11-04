@@ -28,7 +28,7 @@
     const headline = one('.vsl-headline');
     const subheadline = one('.vsl-summary');
     const cta = one('#continueButton');
-    const revealAt = Math.max(1, Number(config.video?.revealAfterSeconds) || 3);
+    const revealAt = Math.max(0.5, Number(config.video?.revealAfterSeconds) || 1.5);
     const sourceMp4 = one('source[type="video/mp4"]', video);
     const sourceWebm = one('source[type="video/webm"]', video);
     if (sourceMp4 && config.video?.src) sourceMp4.src = config.video.src;
@@ -100,19 +100,36 @@
       updateSoundControl();
     });
 
-    // Se a pessoa preferir rolar sem dar play, libera o texto e o CTA
-    // para que a navegação até o catálogo não dependa do vídeo.
+    // Ao começar a rolar para fora da VSL, interrompe vídeo e áudio imediatamente.
+    // O visitante pode voltar ao topo e tocar em Play para assistir novamente.
+    function stopVslForScroll() {
+      if (!userStartedVideo) return;
+      video.pause();
+      video.muted = true;
+      userStartedVideo = false;
+      playOverlay.hidden = false;
+      const label = one('span:last-child', playOverlay);
+      if (label) label.textContent = 'Reproduzir vídeo';
+      updateSoundControl();
+    }
+
+    // Se a pessoa preferir rolar sem dar play, libera os textos e o CTA.
     let scrollRevealDone = false;
     const revealOnScroll = () => {
-      if (!scrollRevealDone && window.scrollY > 35) {
-        scrollRevealDone = true;
-        revealCopy();
+      if (window.scrollY > 2) {
+        stopVslForScroll();
+        if (!scrollRevealDone) {
+          scrollRevealDone = true;
+          revealCopy();
+        }
       }
     };
     window.addEventListener('scroll', revealOnScroll, { passive: true });
 
     const ctaClick = event => {
       event.preventDefault();
+      // O vídeo é pausado e silenciado no próprio clique, antes da rolagem.
+      stopVslForScroll();
       cta.classList.remove('ripple-active');
       void cta.offsetWidth;
       cta.classList.add('ripple-active');

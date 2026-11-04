@@ -34,3 +34,12 @@ Projeto estático para GitHub Pages. Extraia o conteúdo deste ZIP diretamente n
 5. Publique os arquivos na raiz do GitHub Pages.
 
 O site não armazena os dados nem envia mensagens sozinho: ele prepara o briefing e abre o WhatsApp, onde a pessoa confirma o envio.
+
+
+## Atualização V9
+- A VSL agora começa somente após o visitante tocar em **Reproduzir vídeo**, com áudio ligado.
+- O botão de som permite silenciar/reativar o áudio durante a reprodução.
+- Ao iniciar qualquer rolagem para fora da primeira tela, o vídeo é pausado e o áudio silenciado imediatamente.
+- O clique em **Ver temas** também pausa o vídeo antes de iniciar a rolagem suave.
+- Headline, subheadline e botão começam a aparecer após 1,5 segundo de reprodução, em sequência. Se a pessoa rolar sem dar play, os textos são revelados para permitir continuar pelo catálogo.
+- WhatsApp de destino atualizado para `5588981346442`.
